@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Gestion des Pronostics</title>
+    <link rel="manifest" href="manifest.json">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css">
     <style>
         /* Variables de couleurs */
@@ -997,6 +998,19 @@
             measurementId: "G-STXPSZN7X8"
         };
 
+        // Register service worker for PWA support
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function() {
+                navigator.serviceWorker.register('/sw.js')
+                    .then(function(registration) {
+                        console.log('Service Worker registered with scope:', registration.scope);
+                    })
+                    .catch(function(error) {
+                        console.log('Service Worker registration failed:', error);
+                    });
+            });
+        }
+
         // Variables globales
         let isLoggedIn = false;
         let currentUser = null;
@@ -1648,8 +1662,11 @@
 
         // Charger les pronostics
         function loadForecasts(type) {
-            // Si nous avons déjà un écouteur actif pour ce type, ne rien faire
-            if (forecastsUnsubscribers[type]) return;
+            // Si nous avons déjà un écouteur actif pour ce type, le désactiver d'abord
+            if (forecastsUnsubscribers[type]) {
+                forecastsUnsubscribers[type]();
+                forecastsUnsubscribers[type] = null;
+            }
             
             const listElement = document.getElementById(`${type}-list`);
             if (!listElement) return;
@@ -1672,7 +1689,11 @@
                     orderBy("date", "desc")
                 );
                 
+                console.log(`Chargement des pronostics de type: ${type}`);
+                
                 const unsubscribe = onSnapshot(q, (snapshot) => {
+                    console.log(`Données reçues pour ${type}: ${snapshot.size} documents`);
+                    
                     if (snapshot.empty) {
                         listElement.innerHTML = `
                             <div class="no-forecasts">
@@ -2086,6 +2107,15 @@
             document.getElementById('login-email').value = '';
             document.getElementById('login-password').value = '';
             hideLog('login-log');
+            
+            // Réinitialiser l'état du bouton de connexion
+            const loginBtn = document.getElementById('loginBtn');
+            loginBtn.disabled = false;
+            loginBtn.classList.remove('loading');
+            const loader = loginBtn.querySelector('.btn-loader');
+            if (loader) {
+                loader.style.display = 'none';
+            }
             
             console.log("Écran de connexion affiché");
         }
