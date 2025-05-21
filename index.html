@@ -1,0 +1,2246 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Gestion des Pronostics</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css">
+    <style>
+        /* Variables de couleurs */
+        :root {
+            --primary-color: #5D5CDE;
+            --text-color: #000000;
+            --bg-color: #ffffff;
+            --border-color: #dddfe2;
+            --secondary-color: #f0f2f5;
+            --success-color: #4caf50;
+            --danger-color: #ff4842;
+            --warning-color: #FFC107;
+            --inactive-text: #8e8e93;
+            --input-bg: #f0f2f5;
+            --input-placeholder: #8e8e93;
+            --forecast-win-bg: rgba(76, 175, 80, 0.2);
+            --forecast-loss-bg: rgba(244, 67, 54, 0.2);
+            --forecast-pending-bg: rgba(255, 193, 7, 0.2);
+            --card-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+            --header-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        
+        /* Mode sombre */
+        .dark {
+            --bg-color: #181818;
+            --text-color: #ffffff;
+            --border-color: #3e4042;
+            --secondary-color: #2c2c2c;
+            --success-color: #66bb6a;
+            --danger-color: #ff6b6b;
+            --warning-color: #FFD54F;
+            --inactive-text: #6c6c6c;
+            --input-bg: #2c2c2c;
+            --input-placeholder: #6c6c6c;
+            --forecast-win-bg: rgba(76, 175, 80, 0.15);
+            --forecast-loss-bg: rgba(244, 67, 54, 0.15);
+            --forecast-pending-bg: rgba(255, 193, 7, 0.15);
+            --card-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+            --header-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+        }
+        
+        /* Reset de base */
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            position: fixed;
+            overflow: hidden;
+            font-weight: 500;
+            letter-spacing: -0.2px;
+        }
+
+        /* Animation de vérification */
+        .verify-animation {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: var(--bg-color);
+            z-index: 2000;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .football-bounce {
+            font-size: 80px;
+            color: var(--primary-color);
+            animation: bounce 2s infinite;
+        }
+
+        @keyframes bounce {
+            0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+            40% { transform: translateY(-40px); }
+            60% { transform: translateY(-20px); }
+        }
+
+        .verify-text {
+            margin-top: 30px;
+            font-size: 16px;
+            color: var(--text-color);
+            opacity: 0.8;
+            text-align: center;
+        }
+
+        .verify-spinner {
+            width: 40px;
+            height: 40px;
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            border: 4px solid rgba(93, 92, 222, 0.2);
+            border-radius: 50%;
+            border-top: 4px solid var(--primary-color);
+            animation: verify-spin 1s linear infinite;
+        }
+
+        @keyframes verify-spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Écran de chargement */
+        .loading {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: var(--bg-color);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 999;
+        }
+        
+        /* Animation avec Font Awesome */
+        .loading-spinner {
+            font-size: 60px;
+            color: var(--primary-color);
+            animation: pulse 2s infinite, bounce 1.5s infinite;
+            margin-bottom: 20px;
+            text-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+
+        /* Écran d'authentification */
+        .auth-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: var(--bg-color);
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+        }
+        
+        .auth-header {
+            padding: 40px 0 20px;
+            text-align: center;
+        }
+        
+        .auth-logo {
+            font-size: 50px;
+            color: var(--primary-color);
+            margin-bottom: 15px;
+            animation: float 3s ease-in-out infinite;
+        }
+        
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+        
+        .auth-title {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: var(--primary-color);
+        }
+        
+        .auth-subtitle {
+            font-size: 16px;
+            color: var(--text-color);
+            opacity: 0.8;
+            margin-bottom: 20px;
+            padding: 0 20px;
+            text-align: center;
+        }
+
+        .auth-form {
+            padding: 20px;
+            animation: fadeUp 0.5s ease;
+        }
+        
+        @keyframes fadeUp {
+            from { 
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to { 
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+            position: relative;
+        }
+        
+        .form-label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            font-size: 14px;
+        }
+        
+        .form-input {
+            width: 100%;
+            padding: 15px;
+            border-radius: 10px;
+            border: 1px solid var(--border-color);
+            background-color: var(--input-bg);
+            font-size: 16px;
+            color: var(--text-color);
+            transition: border-color 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .form-input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(93, 92, 222, 0.25);
+        }
+        
+        .form-input::placeholder {
+            color: var(--input-placeholder);
+        }
+        
+        .form-error {
+            color: var(--danger-color);
+            font-size: 13px;
+            margin-top: 6px;
+            display: none;
+            animation: shakeX 0.75s ease;
+        }
+        
+        @keyframes shakeX {
+            0%, 100% { transform: translateX(0); }
+            10%, 30%, 50%, 70%, 90% { transform: translateX(-4px); }
+            20%, 40%, 60%, 80% { transform: translateX(4px); }
+        }
+        
+        .form-footer {
+            margin-top: 30px;
+            text-align: center;
+        }
+
+        /* Message log */
+        .log-message {
+            margin-top: 15px;
+            padding: 12px;
+            font-weight: bold;
+            border-radius: 6px;
+            white-space: pre-line;
+            text-align: center;
+            animation: fadeIn 0.5s ease;
+        }
+          
+        .log-message.info {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+          
+        .log-message.success {
+            background: #d4edda;
+            color: #155724;
+        }
+          
+        .log-message.error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .button {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            padding: 12px;
+            font-size: 16px;
+            font-weight: bold;
+            width: 100%;
+            cursor: pointer;
+            transition: transform 0.15s ease, opacity 0.2s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .button:active {
+            transform: scale(0.98);
+            opacity: 0.9;
+        }
+
+        .button:disabled {
+            background-color: var(--border-color);
+            color: var(--inactive-text);
+            cursor: not-allowed;
+        }
+        
+        .button.danger {
+            background-color: var(--danger-color);
+            color: white;
+        }
+
+        /* LOADER POUR LES REQUÊTES */
+        .btn-loader {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            margin-right: 8px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 0.8s linear infinite;
+            vertical-align: middle;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .button.loading {
+            pointer-events: none;
+            opacity: 0.8;
+        }
+        
+        .button.loading .btn-text {
+            visibility: hidden;
+        }
+        
+        .button.loading .btn-loader {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            margin-top: -10px;
+            margin-left: -10px;
+            visibility: visible;
+        }
+
+        /* Notification */
+        .notification {
+            position: fixed;
+            bottom: 80px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            padding: 12px 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+            font-weight: 500;
+            z-index: 1000;
+            opacity: 0;
+            transition: transform 0.3s ease, opacity 0.3s ease;
+            max-width: 80%;
+            text-align: center;
+        }
+
+        .notification.show {
+            transform: translateX(-50%) translateY(0);
+            opacity: 1;
+        }
+
+        .notification.success {
+            border-left: 4px solid var(--success-color);
+        }
+
+        .notification.error {
+            border-left: 4px solid var(--danger-color);
+        }
+
+        .notification.info {
+            border-left: 4px solid var(--primary-color);
+        }
+
+        /* Connection status */
+        .connection-status {
+            position: fixed;
+            top: 50px;
+            left: 0;
+            right: 0;
+            padding: 5px;
+            background-color: var(--danger-color);
+            color: white;
+            text-align: center;
+            font-size: 12px;
+            z-index: 100;
+            transform: translateY(-100%);
+            transition: transform 0.3s ease;
+        }
+
+        .connection-status.offline {
+            transform: translateY(0);
+        }
+
+        .connection-status.reconnecting {
+            background-color: var(--warning-color);
+            transform: translateY(0);
+        }
+
+        /* En-tête fixe */
+        .header {
+            background-color: var(--bg-color);
+            border-bottom: 1px solid var(--border-color);
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 50px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 15px;
+            z-index: 10;
+            box-shadow: var(--header-shadow);
+        }
+        
+        .header-left {
+            display: flex;
+            align-items: center;
+        }
+        
+        .menu-button, .back-button {
+            padding: 10px;
+            cursor: pointer;
+            font-size: 18px;
+            color: var(--primary-color);
+        }
+        
+        .header-title {
+            font-weight: bold;
+            font-size: 18px;
+            color: var(--primary-color);
+        }
+
+        /* Contenu principal */
+        .content {
+            position: fixed;
+            top: 50px;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            background-color: var(--bg-color);
+            padding: 15px;
+        }
+
+        /* Admin message */
+        .admin-access-message {
+            text-align: center;
+            padding: 50px 20px;
+            color: var(--danger-color);
+            font-weight: bold;
+        }
+
+        /* Dashboard */
+        .dashboard-header {
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .dashboard-title {
+            font-size: 22px;
+            font-weight: bold;
+            color: var(--primary-color);
+            margin-bottom: 5px;
+        }
+
+        .dashboard-subtitle {
+            font-size: 14px;
+            color: var(--inactive-text);
+        }
+
+        /* Navigation des pronostics */
+        .forecast-tabs {
+            display: flex;
+            border-bottom: 1px solid var(--border-color);
+            margin-bottom: 20px;
+            background-color: var(--bg-color);
+            position: sticky;
+            top: 0;
+            z-index: 5;
+        }
+        
+        .forecast-tab {
+            flex: 1;
+            text-align: center;
+            padding: 12px 0;
+            font-weight: bold;
+            font-size: 14px;
+            cursor: pointer;
+            position: relative;
+            color: var(--inactive-text);
+            transition: color 0.3s;
+        }
+        
+        .forecast-tab.active {
+            color: var(--primary-color);
+        }
+        
+        .forecast-tab.active::after {
+            content: '';
+            position: absolute;
+            bottom: -1px;
+            left: 20%;
+            width: 60%;
+            height: 3px;
+            background-color: var(--primary-color);
+            border-radius: 3px 3px 0 0;
+            animation: slideIn 0.3s ease;
+        }
+        
+        @keyframes slideIn {
+            from { transform: scaleX(0); }
+            to { transform: scaleX(1); }
+        }
+
+        .forecasts-content {
+            display: none;
+        }
+        
+        .forecasts-content.active {
+            display: block;
+            animation: fadeIn 0.5s ease;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        /* Cards de pronostics */
+        .forecasts-list {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .forecast-card {
+            background-color: var(--secondary-color);
+            border-radius: 10px;
+            padding: 15px;
+            box-shadow: var(--card-shadow);
+            position: relative;
+        }
+        
+        .forecast-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+        
+        .forecast-match {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+        
+        .forecast-team {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+            flex: 1;
+        }
+        
+        .forecast-team-logo {
+            width: 40px;
+            height: 40px;
+            background-color: var(--bg-color);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 5px;
+        }
+        
+        .forecast-team-name {
+            font-weight: 500;
+            text-align: center;
+            font-size: 14px;
+        }
+        
+        .forecast-score {
+            font-size: 22px;
+            font-weight: bold;
+            padding: 0 15px;
+            display: flex;
+            align-items: center;
+        }
+        
+        .forecast-status {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 10px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        
+        .forecast-status.pending {
+            background-color: var(--forecast-pending-bg);
+            color: var(--text-color);
+        }
+        
+        .forecast-status.win {
+            background-color: var(--forecast-win-bg);
+            color: var(--text-color);
+        }
+        
+        .forecast-status.loss {
+            background-color: var(--forecast-loss-bg);
+            color: var(--text-color);
+        }
+        
+        .forecast-date {
+            font-size: 12px;
+            color: var(--inactive-text);
+        }
+        
+        .forecast-confidence {
+            display: flex;
+            align-items: center;
+            margin-top: 10px;
+            font-size: 13px;
+            color: var(--text-color);
+        }
+        
+        .confidence-bar-container {
+            flex: 1;
+            height: 6px;
+            background-color: var(--border-color);
+            border-radius: 3px;
+            margin: 0 10px;
+            overflow: hidden;
+        }
+        
+        .confidence-bar {
+            height: 100%;
+            background-color: var(--primary-color);
+            border-radius: 3px;
+        }
+
+        .forecast-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .action-button {
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            border: none;
+        }
+
+        .action-button.delete {
+            background-color: var(--danger-color);
+            color: white;
+        }
+
+        .action-button.edit {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        /* Formulaire d'ajout */
+        .add-forecast-card {
+            background-color: var(--secondary-color);
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: var(--card-shadow);
+            margin-bottom: 20px;
+        }
+
+        .add-forecast-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: var(--primary-color);
+            text-align: center;
+        }
+
+        .form-row {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .form-col {
+            flex: 1;
+        }
+
+        .form-input.small {
+            padding: 10px;
+            text-align: center;
+        }
+
+        .form-select {
+            width: 100%;
+            padding: 15px;
+            border-radius: 10px;
+            border: 1px solid var(--border-color);
+            background-color: var(--input-bg);
+            font-size: 16px;
+            color: var(--text-color);
+        }
+
+        .form-textarea {
+            width: 100%;
+            padding: 15px;
+            border-radius: 10px;
+            border: 1px solid var(--border-color);
+            background-color: var(--input-bg);
+            font-size: 16px;
+            color: var(--text-color);
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .no-forecasts {
+            text-align: center;
+            padding: 30px 15px;
+            color: var(--inactive-text);
+        }
+        
+        .no-forecasts i {
+            font-size: 40px;
+            margin-bottom: 15px;
+            color: var(--primary-color);
+            opacity: 0.5;
+        }
+
+        /* Confirmation dialog */
+        .confirmation-dialog {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: var(--bg-color);
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            width: 85%;
+            max-width: 300px;
+            padding: 20px;
+            z-index: 150;
+            display: none;
+        }
+        
+        .confirmation-dialog.active {
+            display: block;
+        }
+        
+        .confirmation-title {
+            font-weight: bold;
+            font-size: 18px;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+        
+        .confirmation-text {
+            margin-bottom: 20px;
+            text-align: center;
+            line-height: 1.4;
+        }
+        
+        .confirmation-buttons {
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+        }
+        
+        .confirmation-button {
+            padding: 10px 15px;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+            flex: 1;
+            text-align: center;
+        }
+        
+        .confirmation-cancel {
+            background-color: var(--secondary-color);
+            color: var(--text-color);
+        }
+        
+        .confirmation-delete {
+            background-color: var(--danger-color);
+            color: white;
+        }
+
+        /* Overlay */
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 90;
+            display: none;
+        }
+        
+        .overlay.active {
+            display: block;
+        }
+
+        /* Message d'erreur critique */
+        .critical-error {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: var(--bg-color);
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            width: 90%;
+            max-width: 350px;
+            padding: 20px;
+            z-index: 2100;
+            text-align: center;
+        }
+
+        .critical-error-icon {
+            font-size: 50px;
+            color: var(--danger-color);
+            margin-bottom: 15px;
+        }
+
+        .critical-error-title {
+            font-size: 20px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: var(--danger-color);
+        }
+
+        .critical-error-message {
+            margin-bottom: 20px;
+            line-height: 1.5;
+        }
+
+        .critical-error-button {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 12px 20px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <!-- Animation de vérification -->
+    <div id="verify-animation" class="verify-animation">
+        <div class="football-bounce">
+            <i class="fas fa-futbol"></i>
+        </div>
+        <div class="verify-spinner"></div>
+        <div class="verify-text">Vérification en cours...</div>
+    </div>
+    
+    <!-- Écran de chargement -->
+    <div id="loading" class="loading" style="display: none;">
+        <i class="fas fa-futbol loading-spinner"></i>
+        <div style="font-weight: bold; font-size: 24px; color: var(--primary-color);">Gestion des Pronostics</div>
+        <div style="margin-top: 10px; color: var(--inactive-text);">Chargement...</div>
+    </div>
+
+    <!-- Indicateur de connexion -->
+    <div class="connection-status" id="connection-status"></div>
+
+    <!-- Écran d'authentification -->
+    <div id="auth-screen" class="auth-screen" style="display: none;">
+        <div class="auth-header">
+            <div class="auth-logo">
+                <i class="fas fa-chart-line"></i>
+            </div>
+            <h1 class="auth-title">Gestion des Pronostics</h1>
+            <p class="auth-subtitle">Accès administrateur</p>
+        </div>
+        
+        <!-- Formulaire de Connexion -->
+        <div id="login-form" class="auth-form">
+            <div class="form-group">
+                <label class="form-label">Email</label>
+                <input type="email" class="form-input" id="login-email" placeholder="Votre email">
+                <div id="login-email-error" class="form-error">Veuillez entrer un email valide</div>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Mot de passe</label>
+                <input type="password" class="form-input" id="login-password" placeholder="Votre mot de passe">
+                <div id="login-password-error" class="form-error">Le mot de passe est obligatoire</div>
+            </div>
+            
+            <div id="login-log" class="log-message" style="display:none;"></div>
+
+            <div class="form-footer">
+                <button class="button" id="loginBtn">
+                    <span class="btn-loader" style="display:none;"></span>
+                    <span class="btn-text">Se connecter</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- En-tête -->
+    <div class="header" style="display: none;">
+        <div class="header-left">
+            <div id="logout-button" class="menu-button">
+                <i class="fas fa-sign-out-alt"></i>
+            </div>
+        </div>
+        <div id="header-title" class="header-title">Gestion des Pronostics</div>
+        <div id="header-action">
+            <div id="dark-mode-toggle" class="menu-button">
+                <i class="fas fa-moon"></i>
+            </div>
+        </div>
+    </div>
+
+    <!-- Contenu principal -->
+    <div class="content" id="main-content" style="display: none;">
+        <!-- Le contenu sera chargé dynamiquement -->
+    </div>
+
+    <!-- Dialogue de confirmation de suppression -->
+    <div id="delete-confirmation" class="confirmation-dialog">
+        <div class="confirmation-title">Supprimer ce pronostic ?</div>
+        <div class="confirmation-text">Cette action est irréversible et le pronostic sera définitivement supprimé.</div>
+        <div class="confirmation-buttons">
+            <div class="confirmation-button confirmation-cancel" id="delete-cancel">Annuler</div>
+            <div class="confirmation-button confirmation-delete" id="delete-confirm">Supprimer</div>
+        </div>
+    </div>
+
+    <!-- Erreur critique -->
+    <div id="critical-error" class="critical-error" style="display: none;">
+        <div class="critical-error-icon">
+            <i class="fas fa-exclamation-circle"></i>
+        </div>
+        <div class="critical-error-title">Erreur</div>
+        <div class="critical-error-message" id="critical-error-message">
+            Une erreur inattendue s'est produite.
+        </div>
+        <button class="critical-error-button" id="critical-error-button">Réessayer</button>
+    </div>
+
+    <!-- Overlay pour les dialogues -->
+    <div id="overlay" class="overlay"></div>
+
+    <!-- Notification -->
+    <div class="notification" id="notification"></div>
+
+    <script type="module">
+        // Import Firebase
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.7.3/firebase-app.js";
+        import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.7.3/firebase-auth.js";
+        import { getFirestore, collection, doc, setDoc, getDoc, getDocs, query, orderBy, addDoc, onSnapshot, where, deleteDoc, serverTimestamp, updateDoc, limit } from "https://www.gstatic.com/firebasejs/11.7.3/firebase-firestore.js";
+
+        // Firebase config
+        const firebaseConfig = {
+            apiKey: "AIzaSyDTPLxUiA8lj82kqc6CyCPLQDITc0CtLUE",
+            authDomain: "ichat-betai.firebaseapp.com",
+            databaseURL: "https://ichat-betai-default-rtdb.firebaseio.com",
+            projectId: "ichat-betai",
+            storageBucket: "ichat-betai.appspot.com",
+            messagingSenderId: "168337722600",
+            appId: "1:168337722600:web:beb331f83cc4778c5b4d5d",
+            measurementId: "G-STXPSZN7X8"
+        };
+
+        // Variables globales
+        let isLoggedIn = false;
+        let currentUser = null;
+        let currentUserData = null;
+        let isAdmin = false;
+        let isOnline = navigator.onLine;
+        let currentForecastTab = 'safes';
+        let currentForecastForDeletion = null;
+        let forecastsUnsubscribers = { safes: null, exact: null, ai: null };
+        let authInitialized = false;
+        
+        // Initialiser Firebase avec gestion d'erreur
+        let app, auth, db;
+        try {
+            app = initializeApp(firebaseConfig);
+            auth = getAuth(app);
+            db = getFirestore(app);
+            console.log("Firebase initialisé avec succès");
+        } catch (error) {
+            console.error("Erreur lors de l'initialisation de Firebase:", error);
+            showCriticalError("Impossible d'initialiser Firebase. Veuillez vérifier votre connexion et réessayer.");
+        }
+
+        // Récupérer les données utilisateur de Firestore
+        async function getUserData(uid) {
+            try {
+                console.log(`Récupération des données utilisateur pour: ${uid}`);
+                
+                const userRef = doc(db, "Users", uid);
+                const userSnap = await getDoc(userRef);
+                
+                if (userSnap.exists()) {
+                    console.log(`Données utilisateur récupérées avec succès`);
+                    return { id: userSnap.id, ...userSnap.data() };
+                } else {
+                    console.error(`Utilisateur non trouvé dans Firestore: ${uid}`);
+                    return null;
+                }
+            } catch (error) {
+                console.error(`Erreur lors de la récupération des données utilisateur: ${error.message}`);
+                return null;
+            }
+        }
+
+        // Fonction pour détecter le mode sombre du système
+        function setupDarkMode() {
+            if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                document.documentElement.classList.add('dark');
+            } else {
+                document.documentElement.classList.remove('dark');
+            }
+            
+            window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', event => {
+                if (event.matches) {
+                    document.documentElement.classList.add('dark');
+                } else {
+                    document.documentElement.classList.remove('dark');
+                }
+            });
+        }
+
+        // Toggle mode sombre manuellement
+        function toggleDarkMode() {
+            if (document.documentElement.classList.contains('dark')) {
+                document.documentElement.classList.remove('dark');
+                localStorage.setItem('forecastManagerDarkMode', 'false');
+            } else {
+                document.documentElement.classList.add('dark');
+                localStorage.setItem('forecastManagerDarkMode', 'true');
+            }
+            updateDarkModeIcon();
+        }
+
+        // Mettre à jour l'icône du mode sombre
+        function updateDarkModeIcon() {
+            const darkModeToggle = document.getElementById('dark-mode-toggle');
+            if (!darkModeToggle) return;
+
+            const icon = darkModeToggle.querySelector('i');
+            if (!icon) return;
+
+            if (document.documentElement.classList.contains('dark')) {
+                icon.className = 'fas fa-sun';
+            } else {
+                icon.className = 'fas fa-moon';
+            }
+        }
+
+        // Surveiller la connexion internet
+        function setupConnectionMonitoring() {
+            const connectionStatus = document.getElementById('connection-status');
+            
+            function updateConnectionStatus() {
+                if (navigator.onLine) {
+                    connectionStatus.textContent = '';
+                    connectionStatus.classList.remove('offline');
+                    connectionStatus.classList.remove('reconnecting');
+                    isOnline = true;
+                } else {
+                    connectionStatus.textContent = 'Pas de connexion internet';
+                    connectionStatus.classList.add('offline');
+                    isOnline = false;
+                }
+            }
+            
+            window.addEventListener('online', () => {
+                console.log('Connexion internet rétablie');
+                connectionStatus.textContent = 'Reconnexion en cours...';
+                connectionStatus.classList.remove('offline');
+                connectionStatus.classList.add('reconnecting');
+                
+                // Attendre un peu pour s'assurer que la connexion est stable
+                setTimeout(() => {
+                    updateConnectionStatus();
+                    // Recharger les données si on est connecté
+                    if (isLoggedIn) {
+                        loadForecasts(currentForecastTab);
+                    }
+                }, 1500);
+            });
+            
+            window.addEventListener('offline', () => {
+                console.log('Connexion internet perdue');
+                updateConnectionStatus();
+                showNotification('Pas de connexion internet. Certaines fonctionnalités peuvent ne pas être disponibles.', 'error');
+            });
+            
+            // Vérifier l'état initial
+            updateConnectionStatus();
+        }
+
+        // Afficher une notification dans l'interface
+        function showNotification(message, type = 'info') {
+            const notification = document.getElementById('notification');
+            if (!notification) return;
+            
+            notification.textContent = message;
+            notification.className = 'notification ' + type;
+            
+            // Afficher la notification
+            setTimeout(() => {
+                notification.classList.add('show');
+            }, 100);
+            
+            // Masquer la notification après un délai
+            setTimeout(() => {
+                notification.classList.remove('show');
+                setTimeout(() => {
+                    notification.className = 'notification';
+                }, 300);
+            }, 3000);
+        }
+
+        // Fonction pour afficher/masquer le loader sur un bouton
+        function setButtonLoading(buttonId, isLoading) {
+            const button = document.getElementById(buttonId);
+            if (!button) return;
+            
+            const loader = button.querySelector('.btn-loader');
+            if (!loader) return;
+            
+            if (isLoading) {
+                button.classList.add('loading');
+                loader.style.display = 'inline-block';
+            } else {
+                button.classList.remove('loading');
+                loader.style.display = 'none';
+            }
+        }
+
+        // Validation email
+        function validateEmail(email) {
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            return emailRegex.test(email);
+        }
+
+        // Afficher un message de log
+        function showLog(elementId, text, type="info") {
+            const logDiv = document.getElementById(elementId);
+            if (!logDiv) return;
+            
+            logDiv.textContent = text;
+            logDiv.className = `log-message ${type}`;
+            logDiv.style.display = "block";
+            
+            // Ajouter une animation d'apparition
+            logDiv.style.animation = 'fadeIn 0.5s ease';
+        }
+        
+        // Masquer un message de log
+        function hideLog(elementId) {
+            const logDiv = document.getElementById(elementId);
+            if (logDiv) {
+                logDiv.style.display = "none";
+            }
+        }
+
+        // Afficher une erreur critique
+        function showCriticalError(message, onRetry = () => { window.location.reload(); }) {
+            // Masquer les écrans de chargement et de vérification
+            document.getElementById('verify-animation').style.display = 'none';
+            document.getElementById('loading').style.display = 'none';
+            
+            // Afficher l'erreur
+            const criticalError = document.getElementById('critical-error');
+            const errorMessage = document.getElementById('critical-error-message');
+            const retryButton = document.getElementById('critical-error-button');
+            
+            errorMessage.textContent = message;
+            criticalError.style.display = 'block';
+            
+            // Configurer le bouton de réessai
+            retryButton.onclick = onRetry;
+        }
+
+        // Validation des champs de connexion
+        function validateLoginForm() {
+            const email = document.getElementById('login-email').value.trim();
+            const password = document.getElementById('login-password').value;
+            const emailError = document.getElementById('login-email-error');
+            const passwordError = document.getElementById('login-password-error');
+            
+            let isValid = true;
+            
+            if (!email) {
+                emailError.textContent = 'L\'email est requis';
+                emailError.style.display = 'block';
+                isValid = false;
+            } else if (!validateEmail(email)) {
+                emailError.textContent = 'Format d\'email invalide';
+                emailError.style.display = 'block';
+                isValid = false;
+            } else {
+                emailError.style.display = 'none';
+            }
+            
+            if (!password) {
+                passwordError.textContent = 'Le mot de passe est requis';
+                passwordError.style.display = 'block';
+                isValid = false;
+            } else {
+                passwordError.style.display = 'none';
+            }
+            
+            return isValid;
+        }
+
+        // Connexion d'un utilisateur
+        async function loginUser() {
+            // Validation finale avant de soumettre
+            if (!validateLoginForm()) {
+                return;
+            }
+            
+            const email = document.getElementById("login-email").value.trim();
+            const password = document.getElementById("login-password").value;
+            
+            // Afficher le loader sur le bouton
+            setButtonLoading('loginBtn', true);
+            hideLog("login-log");
+            
+            try {
+                showLog("login-log", "Connexion en cours...", "info");
+                console.log(`Tentative de connexion pour: ${email}`);
+                
+                const userCredential = await signInWithEmailAndPassword(auth, email, password);
+                
+                // Stocker les informations dans les variables globales
+                currentUser = userCredential.user;
+                
+                console.log(`Connexion réussie pour: ${email}`);
+                showLog("login-log", "Connexion réussie ! Vérification des droits administrateur...", "success");
+                
+                // Vérifier si l'utilisateur est admin
+                const userData = await getUserData(userCredential.user.uid);
+                if (userData && userData.statut === 'admin') {
+                    isAdmin = true;
+                    currentUserData = userData;
+                    
+                    showLog("login-log", "Accès administrateur confirmé. Redirection...", "success");
+                    
+                    // Rediriger vers l'application après un court délai
+                    setTimeout(() => {
+                        hideAuthScreen();
+                    }, 1000);
+                } else {
+                    isAdmin = false;
+                    showLog("login-log", "Vous n'avez pas les droits administrateur nécessaires pour accéder à cette application.", "error");
+                    
+                    // Déconnecter l'utilisateur
+                    setTimeout(() => {
+                        signOut(auth);
+                        setButtonLoading('loginBtn', false);
+                    }, 2000);
+                }
+            } catch (error) {
+                let errorMessage = "Erreur de connexion";
+                
+                console.error(`Échec de connexion pour ${email}: ${error.code} - ${error.message}`);
+                
+                switch (error.code) {
+                    case 'auth/user-not-found':
+                    case 'auth/wrong-password':
+                        errorMessage = "Email ou mot de passe incorrect.";
+                        break;
+                    case 'auth/invalid-email':
+                        errorMessage = "L'adresse email n'est pas valide.";
+                        break;
+                    case 'auth/user-disabled':
+                        errorMessage = "Ce compte a été désactivé.";
+                        break;
+                    default:
+                        errorMessage = "Erreur de connexion: " + error.message;
+                }
+                
+                showLog("login-log", errorMessage, "error");
+                setButtonLoading('loginBtn', false);
+            }
+        }
+
+        // Masquer l'écran d'authentification
+        function hideAuthScreen() {
+            document.getElementById('auth-screen').style.opacity = '0';
+            document.getElementById('auth-screen').style.transition = 'opacity 0.5s ease';
+            
+            setTimeout(() => {
+                document.getElementById('auth-screen').style.display = 'none';
+                completeLogin();
+            }, 500);
+        }
+
+        // Compléter le processus de connexion
+        async function completeLogin() {
+            try {
+                // Afficher l'écran de chargement pendant la préparation de l'app
+                document.getElementById('loading').style.display = 'flex';
+                
+                setTimeout(() => {
+                    // Afficher l'interface principale
+                    document.querySelector('.header').style.display = 'flex';
+                    document.querySelector('.header').style.opacity = '1';
+                    
+                    document.querySelector('.content').style.display = 'block';
+                    document.querySelector('.content').style.opacity = '1';
+                    
+                    // Masquer l'écran de chargement
+                    document.getElementById('loading').style.display = 'none';
+                    
+                    // Initialiser le tableau de bord
+                    initDashboard();
+                }, 1000);
+                
+                // L'utilisateur est maintenant connecté
+                isLoggedIn = true;
+                
+                console.log("Connexion complétée avec succès");
+            } catch (error) {
+                console.error("Erreur lors de la finalisation de la connexion:", error);
+                showNotification("Erreur lors de la connexion à l'application", "error");
+                
+                // Masquer l'écran de chargement
+                document.getElementById('loading').style.display = 'none';
+                
+                // Afficher le message d'erreur critique
+                showCriticalError("Une erreur s'est produite lors de la finalisation de la connexion. Veuillez réessayer.");
+            }
+        }
+
+        // Initialiser le tableau de bord
+        function initDashboard() {
+            // S'assurer que l'utilisateur est admin
+            if (!isAdmin) {
+                showNonAdminMessage();
+                return;
+            }
+
+            // Initialiser le contenu
+            const content = document.getElementById('main-content');
+            content.innerHTML = `
+                <div class="dashboard-header">
+                    <div class="dashboard-title">Tableau de Bord des Pronostics</div>
+                    <div class="dashboard-subtitle">Gérez vos prédictions sportives</div>
+                </div>
+                
+                <div class="forecast-tabs">
+                    <div class="forecast-tab active" data-tab="safes">Safes du jour</div>
+                    <div class="forecast-tab" data-tab="exact">Scores exacts</div>
+                    <div class="forecast-tab" data-tab="ai">Prédictions IA</div>
+                </div>
+                
+                <!-- Safes du jour -->
+                <div id="safes-content" class="forecasts-content active">
+                    <div class="add-forecast-card">
+                        <div class="add-forecast-title">Ajouter un "Safe du jour"</div>
+                        <div class="form-group">
+                            <label class="form-label">Ligue / Compétition</label>
+                            <input type="text" class="form-input" id="safes-league" placeholder="Ex: Ligue 1, Premier League...">
+                        </div>
+                        <div class="form-row">
+                            <div class="form-col">
+                                <label class="form-label">Équipe domicile</label>
+                                <input type="text" class="form-input" id="safes-home-team" placeholder="Équipe à domicile">
+                            </div>
+                            <div class="form-col">
+                                <label class="form-label">Équipe extérieur</label>
+                                <input type="text" class="form-input" id="safes-away-team" placeholder="Équipe à l'extérieur">
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-col">
+                                <label class="form-label">Prédiction</label>
+                                <select class="form-select" id="safes-prediction">
+                                    <option value="1">Victoire domicile (1)</option>
+                                    <option value="X">Match nul (X)</option>
+                                    <option value="2">Victoire extérieur (2)</option>
+                                    <option value="Over 2.5">Plus de 2.5 buts</option>
+                                    <option value="Under 2.5">Moins de 2.5 buts</option>
+                                    <option value="1X">Double chance 1X</option>
+                                    <option value="X2">Double chance X2</option>
+                                    <option value="BTTS">Les deux équipes marquent</option>
+                                </select>
+                            </div>
+                            <div class="form-col">
+                                <label class="form-label">Confiance (%)</label>
+                                <input type="number" class="form-input" id="safes-confidence" placeholder="Entre 50 et 100" min="50" max="100" value="75">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Date et heure du match</label>
+                            <input type="datetime-local" class="form-input" id="safes-date">
+                        </div>
+                        <button class="button" id="safes-add-btn">
+                            <span class="btn-loader" style="display:none;"></span>
+                            <span class="btn-text">Ajouter le pronostic</span>
+                        </button>
+                    </div>
+                    
+                    <div class="forecasts-list" id="safes-list">
+                        <div class="no-forecasts">
+                            <i class="fas fa-spinner fa-spin"></i>
+                            <div class="empty-state-title">Chargement</div>
+                            <div class="empty-state-text">Récupération des pronostics...</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Scores exacts -->
+                <div id="exact-content" class="forecasts-content">
+                    <div class="add-forecast-card">
+                        <div class="add-forecast-title">Ajouter un "Score exact"</div>
+                        <div class="form-group">
+                            <label class="form-label">Ligue / Compétition</label>
+                            <input type="text" class="form-input" id="exact-league" placeholder="Ex: Ligue 1, Premier League...">
+                        </div>
+                        <div class="form-row">
+                            <div class="form-col">
+                                <label class="form-label">Équipe domicile</label>
+                                <input type="text" class="form-input" id="exact-home-team" placeholder="Équipe à domicile">
+                            </div>
+                            <div class="form-col">
+                                <label class="form-label">Équipe extérieur</label>
+                                <input type="text" class="form-input" id="exact-away-team" placeholder="Équipe à l'extérieur">
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-col">
+                                <label class="form-label">Score domicile</label>
+                                <input type="number" class="form-input small" id="exact-home-score" min="0" max="20" value="1">
+                            </div>
+                            <div class="form-col">
+                                <label class="form-label">Score extérieur</label>
+                                <input type="number" class="form-input small" id="exact-away-score" min="0" max="20" value="0">
+                            </div>
+                            <div class="form-col">
+                                <label class="form-label">Confiance (%)</label>
+                                <input type="number" class="form-input" id="exact-confidence" placeholder="Entre 50 et 100" min="50" max="100" value="65">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Date et heure du match</label>
+                            <input type="datetime-local" class="form-input" id="exact-date">
+                        </div>
+                        <button class="button" id="exact-add-btn">
+                            <span class="btn-loader" style="display:none;"></span>
+                            <span class="btn-text">Ajouter le pronostic</span>
+                        </button>
+                    </div>
+                    
+                    <div class="forecasts-list" id="exact-list">
+                        <div class="no-forecasts">
+                            <i class="fas fa-spinner fa-spin"></i>
+                            <div class="empty-state-title">Chargement</div>
+                            <div class="empty-state-text">Récupération des pronostics...</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Prédictions IA -->
+                <div id="ai-content" class="forecasts-content">
+                    <div class="add-forecast-card">
+                        <div class="add-forecast-title">Ajouter une "Prédiction IA"</div>
+                        <div class="form-group">
+                            <label class="form-label">Ligue / Compétition</label>
+                            <input type="text" class="form-input" id="ai-league" placeholder="Ex: Ligue 1, Premier League...">
+                        </div>
+                        <div class="form-row">
+                            <div class="form-col">
+                                <label class="form-label">Équipe domicile</label>
+                                <input type="text" class="form-input" id="ai-home-team" placeholder="Équipe à domicile">
+                            </div>
+                            <div class="form-col">
+                                <label class="form-label">Équipe extérieur</label>
+                                <input type="text" class="form-input" id="ai-away-team" placeholder="Équipe à l'extérieur">
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-col">
+                                <label class="form-label">Score domicile</label>
+                                <input type="number" class="form-input small" id="ai-home-score" min="0" max="20" value="1">
+                            </div>
+                            <div class="form-col">
+                                <label class="form-label">Score extérieur</label>
+                                <input type="number" class="form-input small" id="ai-away-score" min="0" max="20" value="0">
+                            </div>
+                            <div class="form-col">
+                                <label class="form-label">Confiance (%)</label>
+                                <input type="number" class="form-input" id="ai-confidence" placeholder="Entre 50 et 100" min="50" max="100" value="70">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Analyse IA</label>
+                            <textarea class="form-textarea" id="ai-analysis" placeholder="Analyse détaillée générée par l'IA..."></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Date et heure du match</label>
+                            <input type="datetime-local" class="form-input" id="ai-date">
+                        </div>
+                        <button class="button" id="ai-add-btn">
+                            <span class="btn-loader" style="display:none;"></span>
+                            <span class="btn-text">Ajouter le pronostic</span>
+                        </button>
+                    </div>
+                    
+                    <div class="forecasts-list" id="ai-list">
+                        <div class="no-forecasts">
+                            <i class="fas fa-spinner fa-spin"></i>
+                            <div class="empty-state-title">Chargement</div>
+                            <div class="empty-state-text">Récupération des pronostics...</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            // Configurer les dates par défaut
+            setDefaultDates();
+
+            // Ajouter les écouteurs d'événements
+            setupDashboardEvents();
+
+            // Charger les pronostics
+            loadForecasts(currentForecastTab);
+        }
+
+        // Configurer les dates par défaut
+        function setDefaultDates() {
+            try {
+                const tomorrow = new Date();
+                tomorrow.setDate(tomorrow.getDate() + 1);
+                tomorrow.setHours(20, 0, 0, 0);
+                
+                const dateString = tomorrow.toISOString().slice(0, 16);
+                
+                document.getElementById('safes-date').value = dateString;
+                document.getElementById('exact-date').value = dateString;
+                document.getElementById('ai-date').value = dateString;
+            } catch (error) {
+                console.error("Erreur lors de la configuration des dates par défaut:", error);
+            }
+        }
+
+        // Configurer les événements du tableau de bord
+        function setupDashboardEvents() {
+            try {
+                // Écouteurs pour les onglets
+                document.querySelectorAll('.forecast-tab').forEach(tab => {
+                    tab.addEventListener('click', function() {
+                        const tabId = this.getAttribute('data-tab');
+                        switchForecastTab(tabId);
+                    });
+                });
+
+                // Écouteurs pour les boutons d'ajout
+                document.getElementById('safes-add-btn').addEventListener('click', () => addForecast('safes'));
+                document.getElementById('exact-add-btn').addEventListener('click', () => addForecast('exact'));
+                document.getElementById('ai-add-btn').addEventListener('click', () => addForecast('ai'));
+
+                // Écouteur pour le bouton de déconnexion
+                document.getElementById('logout-button').addEventListener('click', logoutUser);
+
+                // Écouteur pour le toggle de mode sombre
+                document.getElementById('dark-mode-toggle').addEventListener('click', toggleDarkMode);
+
+                // Écouteurs pour le dialogue de confirmation
+                document.getElementById('delete-cancel').addEventListener('click', hideDeleteConfirmation);
+                document.getElementById('delete-confirm').addEventListener('click', confirmDeleteForecast);
+            } catch (error) {
+                console.error("Erreur lors de la configuration des événements du tableau de bord:", error);
+                showCriticalError("Erreur lors de l'initialisation de l'interface. Veuillez réessayer.");
+            }
+        }
+
+        // Changer d'onglet de pronostic
+        function switchForecastTab(tabId) {
+            currentForecastTab = tabId;
+            
+            // Mettre à jour les onglets
+            document.querySelectorAll('.forecast-tab').forEach(tab => {
+                if (tab.getAttribute('data-tab') === tabId) {
+                    tab.classList.add('active');
+                } else {
+                    tab.classList.remove('active');
+                }
+            });
+            
+            // Mettre à jour le contenu
+            document.querySelectorAll('.forecasts-content').forEach(content => {
+                if (content.id === `${tabId}-content`) {
+                    content.classList.add('active');
+                } else {
+                    content.classList.remove('active');
+                }
+            });
+            
+            // Charger les pronostics de cet onglet s'ils ne sont pas déjà chargés
+            loadForecasts(tabId);
+        }
+
+        // Afficher un message pour les non-administrateurs
+        function showNonAdminMessage() {
+            const content = document.getElementById('main-content');
+            content.innerHTML = `
+                <div class="admin-access-message">
+                    <i class="fas fa-lock" style="font-size: 50px; margin-bottom: 20px;"></i>
+                    <div style="font-size: 24px; margin-bottom: 10px;">Accès Restreint</div>
+                    <div>Cette application est réservée aux administrateurs.</div>
+                </div>
+            `;
+        }
+
+        // Charger les pronostics
+        function loadForecasts(type) {
+            // Si nous avons déjà un écouteur actif pour ce type, ne rien faire
+            if (forecastsUnsubscribers[type]) return;
+            
+            const listElement = document.getElementById(`${type}-list`);
+            if (!listElement) return;
+            
+            // Afficher l'indicateur de chargement
+            listElement.innerHTML = `
+                <div class="no-forecasts">
+                    <i class="fas fa-spinner fa-spin"></i>
+                    <div class="empty-state-title">Chargement</div>
+                    <div class="empty-state-text">Récupération des pronostics...</div>
+                </div>
+            `;
+            
+            try {
+                // Configurer l'écouteur pour les pronostics
+                const forecastsRef = collection(db, "forecasts");
+                const q = query(
+                    forecastsRef, 
+                    where("type", "==", type), 
+                    orderBy("date", "desc")
+                );
+                
+                const unsubscribe = onSnapshot(q, (snapshot) => {
+                    if (snapshot.empty) {
+                        listElement.innerHTML = `
+                            <div class="no-forecasts">
+                                <i class="fas fa-chart-line"></i>
+                                <div class="empty-state-title">Aucun pronostic</div>
+                                <div class="empty-state-text">Aucun pronostic disponible actuellement</div>
+                            </div>
+                        `;
+                        return;
+                    }
+                    
+                    // Vider la liste
+                    listElement.innerHTML = '';
+                    
+                    // Créer un fragment pour ajouter tous les pronostics en une seule fois
+                    const fragment = document.createDocumentFragment();
+                    
+                    snapshot.forEach((doc) => {
+                        const forecastData = doc.data();
+                        const forecastElement = createForecastElement(doc.id, forecastData, type);
+                        fragment.appendChild(forecastElement);
+                    });
+                    
+                    // Ajouter tous les pronostics
+                    listElement.appendChild(fragment);
+                }, (error) => {
+                    console.error(`Erreur dans l'écouteur des pronostics (${type}):`, error);
+                    listElement.innerHTML = `
+                        <div class="no-forecasts">
+                            <i class="fas fa-exclamation-circle"></i>
+                            <div class="empty-state-title">Erreur</div>
+                            <div class="empty-state-text">Impossible de charger les pronostics: ${error.message}</div>
+                        </div>
+                    `;
+                });
+
+                // Stocker l'écouteur
+                forecastsUnsubscribers[type] = unsubscribe;
+                
+            } catch (error) {
+                console.error(`Erreur lors du chargement des pronostics: ${error.message}`);
+                listElement.innerHTML = `
+                    <div class="no-forecasts">
+                        <i class="fas fa-exclamation-circle"></i>
+                        <div class="empty-state-title">Erreur</div>
+                        <div class="empty-state-text">Impossible de charger les pronostics: ${error.message}</div>
+                    </div>
+                `;
+            }
+        }
+
+        // Créer un élément de pronostic
+        function createForecastElement(forecastId, forecastData, type) {
+            const forecastCard = document.createElement('div');
+            forecastCard.className = 'forecast-card';
+            forecastCard.setAttribute('data-id', forecastId);
+            
+            // Configuration commune
+            let statusClass = 'pending';
+            let statusText = 'À venir';
+            
+            if (forecastData.status === 'win') {
+                statusClass = 'win';
+                statusText = 'Gagné';
+            } else if (forecastData.status === 'loss') {
+                statusClass = 'loss';
+                statusText = 'Perdu';
+            }
+            
+            // Formater la date
+            let formattedDate = 'Date inconnue';
+            if (forecastData.date) {
+                let date;
+                if (forecastData.date.toDate) {
+                    date = forecastData.date.toDate();
+                } else {
+                    date = new Date(forecastData.date);
+                }
+                
+                formattedDate = date.toLocaleDateString('fr-FR', {
+                    day: 'numeric',
+                    month: 'short',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+            }
+            
+            // Contenu spécifique au type
+            let mainContent = '';
+            
+            if (type === 'safes') {
+                // Format pour les safes du jour
+                mainContent = `
+                    <div class="forecast-header">
+                        <div>${forecastData.league}</div>
+                        <div class="forecast-status ${statusClass}">${statusText}</div>
+                    </div>
+                    <div class="forecast-match">
+                        <div class="forecast-team">
+                            <div class="forecast-team-logo">
+                                <i class="fas fa-shield-alt"></i>
+                            </div>
+                            <div class="forecast-team-name">${forecastData.homeTeam}</div>
+                        </div>
+                        <div class="forecast-score">VS</div>
+                        <div class="forecast-team">
+                            <div class="forecast-team-logo">
+                                <i class="fas fa-shield-alt"></i>
+                            </div>
+                            <div class="forecast-team-name">${forecastData.awayTeam}</div>
+                        </div>
+                    </div>
+                    <div style="text-align: center; font-weight: bold; margin: 10px 0;">
+                        Pronostic: ${forecastData.prediction}
+                    </div>
+                `;
+            } else if (type === 'exact' || type === 'ai') {
+                // Format pour les scores exacts et prédictions IA
+                let resultDisplay = '';
+                if (forecastData.status !== 'pending') {
+                    resultDisplay = `
+                        <div style="margin-top: 5px; text-align: center;">
+                            Résultat final: ${forecastData.resultHomeScore}-${forecastData.resultAwayScore}
+                        </div>
+                    `;
+                }
+                
+                mainContent = `
+                    <div class="forecast-header">
+                        <div>${forecastData.league}</div>
+                        <div class="forecast-status ${statusClass}">${statusText}</div>
+                    </div>
+                    <div class="forecast-match">
+                        <div class="forecast-team">
+                            <div class="forecast-team-logo">
+                                <i class="fas fa-shield-alt"></i>
+                            </div>
+                            <div class="forecast-team-name">${forecastData.homeTeam}</div>
+                        </div>
+                        <div class="forecast-score">${forecastData.homeScore} - ${forecastData.awayScore}</div>
+                        <div class="forecast-team">
+                            <div class="forecast-team-logo">
+                                <i class="fas fa-shield-alt"></i>
+                            </div>
+                            <div class="forecast-team-name">${forecastData.awayTeam}</div>
+                        </div>
+                    </div>
+                    ${resultDisplay}
+                `;
+
+                // Ajouter l'analyse pour les prédictions IA
+                if (type === 'ai' && forecastData.analysis) {
+                    mainContent += `
+                        <div style="font-size: 13px; margin-top: 10px; font-style: italic;">
+                            "${forecastData.analysis}"
+                        </div>
+                    `;
+                }
+            }
+            
+            // Barre de confiance
+            const confidenceBar = `
+                <div class="forecast-confidence">
+                    <span>Confiance:</span>
+                    <div class="confidence-bar-container">
+                        <div class="confidence-bar" style="width: ${forecastData.confidence}%"></div>
+                    </div>
+                    <span>${forecastData.confidence}%</span>
+                </div>
+            `;
+            
+            // Boutons d'action et date
+            const footer = `
+                <div class="forecast-date">${formattedDate}</div>
+                <div class="forecast-actions">
+                    <button class="action-button delete" data-id="${forecastId}">
+                        <i class="fas fa-trash-alt"></i> Supprimer
+                    </button>
+                </div>
+            `;
+            
+            forecastCard.innerHTML = mainContent + confidenceBar + footer;
+            
+            // Ajouter l'événement pour le bouton de suppression
+            const deleteButton = forecastCard.querySelector('.action-button.delete');
+            if (deleteButton) {
+                deleteButton.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    showDeleteConfirmation(forecastId);
+                });
+            }
+            
+            return forecastCard;
+        }
+
+        // Ajouter un nouveau pronostic
+        async function addForecast(type) {
+            // Validation des entrées
+            if (!validateForecastForm(type)) {
+                return;
+            }
+
+            // Récupérer les valeurs communes
+            const league = document.getElementById(`${type}-league`).value.trim();
+            const homeTeam = document.getElementById(`${type}-home-team`).value.trim();
+            const awayTeam = document.getElementById(`${type}-away-team`).value.trim();
+            const dateStr = document.getElementById(`${type}-date`).value;
+            const confidence = parseInt(document.getElementById(`${type}-confidence`).value);
+            
+            // Préparer les données selon le type
+            let forecastData = {
+                type,
+                league,
+                homeTeam,
+                awayTeam,
+                date: new Date(dateStr),
+                confidence,
+                status: "pending",
+                createdAt: serverTimestamp()
+            };
+            
+            if (type === 'safes') {
+                forecastData.prediction = document.getElementById('safes-prediction').value;
+            } else if (type === 'exact' || type === 'ai') {
+                forecastData.homeScore = parseInt(document.getElementById(`${type}-home-score`).value);
+                forecastData.awayScore = parseInt(document.getElementById(`${type}-away-score`).value);
+                
+                // Pour les prédictions IA, ajouter l'analyse
+                if (type === 'ai') {
+                    forecastData.analysis = document.getElementById('ai-analysis').value.trim();
+                }
+            }
+
+            // Afficher le loader sur le bouton
+            setButtonLoading(`${type}-add-btn`, true);
+            
+            try {
+                // Ajouter à Firestore
+                const forecastsRef = collection(db, "forecasts");
+                await addDoc(forecastsRef, forecastData);
+                
+                // Réinitialiser le formulaire
+                resetForecastForm(type);
+                
+                // Notification
+                showNotification('Pronostic ajouté avec succès', 'success');
+            } catch (error) {
+                console.error(`Erreur lors de l'ajout du pronostic: ${error.message}`);
+                showNotification('Erreur lors de l\'ajout du pronostic', 'error');
+            } finally {
+                setButtonLoading(`${type}-add-btn`, false);
+            }
+        }
+
+        // Valider le formulaire de pronostic
+        function validateForecastForm(type) {
+            try {
+                // Valider les champs communs
+                const league = document.getElementById(`${type}-league`).value.trim();
+                const homeTeam = document.getElementById(`${type}-home-team`).value.trim();
+                const awayTeam = document.getElementById(`${type}-away-team`).value.trim();
+                const dateStr = document.getElementById(`${type}-date`).value;
+                const confidence = document.getElementById(`${type}-confidence`).value;
+                
+                if (!league) {
+                    showNotification('Veuillez entrer une ligue/compétition', 'error');
+                    return false;
+                }
+                
+                if (!homeTeam) {
+                    showNotification('Veuillez entrer l\'équipe à domicile', 'error');
+                    return false;
+                }
+                
+                if (!awayTeam) {
+                    showNotification('Veuillez entrer l\'équipe à l\'extérieur', 'error');
+                    return false;
+                }
+                
+                if (!dateStr) {
+                    showNotification('Veuillez sélectionner une date et heure', 'error');
+                    return false;
+                }
+                
+                if (!confidence || confidence < 50 || confidence > 100) {
+                    showNotification('La confiance doit être entre 50 et 100%', 'error');
+                    return false;
+                }
+                
+                // Validations spécifiques
+                if (type === 'ai' && !document.getElementById('ai-analysis').value.trim()) {
+                    showNotification('Veuillez entrer une analyse IA', 'error');
+                    return false;
+                }
+                
+                return true;
+            } catch (error) {
+                console.error("Erreur lors de la validation du formulaire:", error);
+                showNotification('Erreur lors de la validation du formulaire', 'error');
+                return false;
+            }
+        }
+
+        // Réinitialiser le formulaire de pronostic
+        function resetForecastForm(type) {
+            document.getElementById(`${type}-league`).value = '';
+            document.getElementById(`${type}-home-team`).value = '';
+            document.getElementById(`${type}-away-team`).value = '';
+            
+            // Garder la date actuelle
+            
+            if (type === 'exact' || type === 'ai') {
+                document.getElementById(`${type}-home-score`).value = 1;
+                document.getElementById(`${type}-away-score`).value = 0;
+            }
+            
+            if (type === 'ai') {
+                document.getElementById('ai-analysis').value = '';
+            }
+            
+            document.getElementById(`${type}-confidence`).value = type === 'safes' ? 75 : (type === 'exact' ? 65 : 70);
+        }
+
+        // Afficher le dialogue de confirmation de suppression
+        function showDeleteConfirmation(forecastId) {
+            currentForecastForDeletion = forecastId;
+            document.getElementById('delete-confirmation').classList.add('active');
+            document.getElementById('overlay').classList.add('active');
+        }
+
+        // Masquer le dialogue de confirmation de suppression
+        function hideDeleteConfirmation() {
+            document.getElementById('delete-confirmation').classList.remove('active');
+            document.getElementById('overlay').classList.remove('active');
+            currentForecastForDeletion = null;
+        }
+
+        // Confirmer la suppression d'un pronostic
+        async function confirmDeleteForecast() {
+            if (!currentForecastForDeletion) {
+                hideDeleteConfirmation();
+                return;
+            }
+            
+            try {
+                // Supprimer le pronostic de Firestore
+                await deleteDoc(doc(db, "forecasts", currentForecastForDeletion));
+                
+                showNotification('Pronostic supprimé avec succès', 'success');
+            } catch (error) {
+                console.error(`Erreur lors de la suppression du pronostic: ${error.message}`);
+                showNotification('Erreur lors de la suppression du pronostic', 'error');
+            } finally {
+                hideDeleteConfirmation();
+            }
+        }
+
+        // Déconnexion
+        async function logoutUser() {
+            document.getElementById('loading').style.display = 'flex';
+            document.getElementById('loading').querySelector('div:nth-child(3)').innerText = 'Déconnexion...';
+            
+            try {
+                // Désabonner de tous les écouteurs
+                Object.keys(forecastsUnsubscribers).forEach(type => {
+                    if (forecastsUnsubscribers[type]) {
+                        forecastsUnsubscribers[type]();
+                        forecastsUnsubscribers[type] = null;
+                    }
+                });
+                
+                await signOut(auth);
+                
+                // Réinitialiser les variables globales
+                isLoggedIn = false;
+                currentUser = null;
+                currentUserData = null;
+                isAdmin = false;
+                
+                console.log("Déconnexion réussie");
+                
+                // Rediriger vers l'écran de connexion
+                showLoginScreen();
+            } catch (error) {
+                console.error(`Erreur lors de la déconnexion: ${error.message}`);
+                // Masquer l'écran de chargement
+                document.getElementById('loading').style.display = 'none';
+                showNotification("Erreur lors de la déconnexion", "error");
+            }
+        }
+
+        // Fonction pour afficher l'écran de connexion
+        function showLoginScreen() {
+            // Animation d'apparition
+            document.getElementById('auth-screen').style.opacity = '0';
+            document.getElementById('auth-screen').style.display = 'flex';
+            
+            setTimeout(() => {
+                document.getElementById('auth-screen').style.opacity = '1';
+                document.getElementById('auth-screen').style.transition = 'opacity 0.5s ease';
+            }, 10);
+            
+            // Masquer les autres éléments de l'interface principale
+            document.querySelector('.header').style.display = 'none';
+            document.querySelector('.content').style.display = 'none';
+            
+            // Masquer l'écran de chargement
+            document.getElementById('loading').style.display = 'none';
+            
+            // Réinitialiser les champs de connexion
+            document.getElementById('login-email').value = '';
+            document.getElementById('login-password').value = '';
+            hideLog('login-log');
+            
+            console.log("Écran de connexion affiché");
+        }
+
+        // Observer les changements d'authentification avec gestion des erreurs et timeout
+        function setupAuthObserver() {
+            // Activer l'animation de vérification
+            const verifyAnimation = document.getElementById('verify-animation');
+            verifyAnimation.style.display = 'flex';
+            
+            try {
+                // Timer de sécurité pour éviter un blocage infini sur l'écran de chargement
+                const authTimeout = setTimeout(() => {
+                    if (!authInitialized) {
+                        console.error("Timeout de l'authentification atteint");
+                        verifyAnimation.style.display = 'none';
+                        showCriticalError("L'authentification a pris trop de temps. Veuillez vérifier votre connexion internet et réessayer.");
+                    }
+                }, 15000); // 15 secondes maximum
+                
+                onAuthStateChanged(auth, async (user) => {
+                    // Marquer l'authentification comme initialisée
+                    authInitialized = true;
+                    
+                    // Annuler le timer de sécurité
+                    clearTimeout(authTimeout);
+                    
+                    if (user) {
+                        try {
+                            // Utilisateur connecté
+                            currentUser = user;
+                            
+                            console.log(`Utilisateur connecté détecté: ${user.email}`);
+                            
+                            // Vérifier si l'utilisateur est admin
+                            const userData = await getUserData(user.uid);
+                            if (userData && userData.statut === 'admin') {
+                                isAdmin = true;
+                                currentUserData = userData;
+                                
+                                // Masquer l'animation de vérification après un délai pour montrer le processus
+                                setTimeout(() => {
+                                    verifyAnimation.style.display = 'none';
+                                    
+                                    // Masquer l'écran d'authentification
+                                    document.getElementById('auth-screen').style.display = 'none';
+                                    
+                                    // Compléter la connexion
+                                    completeLogin();
+                                }, 1500);
+                            } else {
+                                // L'utilisateur n'est pas admin
+                                isAdmin = false;
+                                
+                                // Masquer l'animation de vérification
+                                setTimeout(() => {
+                                    verifyAnimation.style.display = 'none';
+                                    
+                                    // Afficher l'écran de connexion
+                                    showLoginScreen();
+                                    
+                                    // Afficher un message d'erreur
+                                    showLog("login-log", "Vous n'avez pas les droits administrateur nécessaires pour accéder à cette application.", "error");
+                                    
+                                    // Déconnecter l'utilisateur
+                                    signOut(auth);
+                                }, 1500);
+                            }
+                        } catch (error) {
+                            console.error("Erreur lors de la vérification des droits:", error);
+                            
+                            setTimeout(() => {
+                                verifyAnimation.style.display = 'none';
+                                showLoginScreen();
+                                showLog("login-log", "Erreur lors de la vérification des droits d'accès.", "error");
+                                signOut(auth);
+                            }, 1500);
+                        }
+                    } else {
+                        // Utilisateur déconnecté
+                        console.log("Aucun utilisateur connecté, affichage de l'écran de connexion");
+                        
+                        // Masquer l'animation de vérification après un délai pour montrer le processus
+                        setTimeout(() => {
+                            verifyAnimation.style.display = 'none';
+                            // Afficher l'écran de connexion
+                            showLoginScreen();
+                        }, 1500);
+                    }
+                }, (error) => {
+                    // Erreur dans l'observateur d'authentification
+                    console.error("Erreur dans l'observateur d'authentification:", error);
+                    authInitialized = true;
+                    clearTimeout(authTimeout);
+                    
+                    setTimeout(() => {
+                        verifyAnimation.style.display = 'none';
+                        showCriticalError(`Erreur lors de l'authentification: ${error.message}`);
+                    }, 1000);
+                });
+            } catch (error) {
+                console.error("Erreur lors de la mise en place de l'observateur d'authentification:", error);
+                verifyAnimation.style.display = 'none';
+                showCriticalError(`Erreur lors de l'initialisation de l'authentification: ${error.message}`);
+            }
+        }
+
+        // Initialiser l'application avec gestion d'erreur
+        document.addEventListener('DOMContentLoaded', function() {
+            try {
+                console.log("Initialisation de l'application...");
+                
+                // Configurer le mode sombre
+                setupDarkMode();
+                
+                // Récupérer le mode sombre stocké
+                const savedDarkMode = localStorage.getItem('forecastManagerDarkMode');
+                if (savedDarkMode !== null) {
+                    const isDarkMode = savedDarkMode === 'true';
+                    if (isDarkMode) {
+                        document.documentElement.classList.add('dark');
+                    } else {
+                        document.documentElement.classList.remove('dark');
+                    }
+                }
+                
+                // Mettre à jour l'icône du mode sombre
+                updateDarkModeIcon();
+                
+                // Configurer la surveillance de la connexion internet
+                setupConnectionMonitoring();
+                
+                // Configurer les événements de connexion
+                document.getElementById('loginBtn').addEventListener('click', loginUser);
+                document.getElementById('login-form').addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    loginUser();
+                });
+                
+                // Configurer l'écouteur d'erreur critique
+                document.getElementById('critical-error-button').addEventListener('click', () => {
+                    document.getElementById('critical-error').style.display = 'none';
+                    window.location.reload();
+                });
+                
+                // Configurer l'observateur d'authentification
+                setupAuthObserver();
+                
+                console.log("Application initialisée avec succès");
+            } catch (error) {
+                console.error("Erreur lors de l'initialisation de l'application:", error);
+                document.getElementById('verify-animation').style.display = 'none';
+                showCriticalError(`Erreur lors de l'initialisation de l'application: ${error.message}`);
+            }
+        });
+    </script>
+</body>
+</html>
